@@ -171,7 +171,7 @@ static void UpdateBestEpochs(
             "%ls = %f (%d)",
             cvSetTrainAndEvalNodes[i].c_str(),
             bestEpoch.criterionMinValue,
-            bestEpoch.epochIndex);
+            bestEpoch.epochIndex + 1); // In actual loop epochs are 0 indexed but all outputs use 1 indexed.
         if (i + 1 < cvSetTrainAndEvalNodes.size())
             fprintf(stderr, ";");
     }
@@ -432,13 +432,16 @@ void SGD<ElemType>::TrainOrAdaptModel(int startEpoch, ComputationNetworkPtr net,
     }
 
     map<wstring, BestEpoch> criteriaBestEpoch;
-    if (!criterionNodes.empty())
+    if (m_saveBestModelPerCriterion)
     {
-        criteriaBestEpoch.emplace(criterionNodes[0]->NodeName(), BestEpoch());
-    }
-    for (const ComputationNodeBasePtr& node : evaluationNodes)
-    {
-        criteriaBestEpoch.emplace(node->NodeName(), BestEpoch());
+        if (!criterionNodes.empty())
+        {
+            criteriaBestEpoch.emplace(criterionNodes[0]->NodeName(), BestEpoch());
+        }
+        for (const ComputationNodeBasePtr& node : evaluationNodes)
+        {
+            criteriaBestEpoch.emplace(node->NodeName(), BestEpoch());
+        }
     }
 
     size_t totalTrainingSamplesSeen = 0; // aggregated over all epochs, for logging purposes only
@@ -737,8 +740,11 @@ void SGD<ElemType>::TrainOrAdaptModel(int startEpoch, ComputationNetworkPtr net,
                 tensorBoardWriter->Flush();
             }
 
-            // Loops through criteria (i.e. score) and updates the best one if smaller value is found.
-            UpdateBestEpochs(vScore, cvSetTrainAndEvalNodes, i, criteriaBestEpoch);
+            if (m_saveBestModelPerCriterion)
+            {
+                // Loops through criteria (i.e. score) and updates the best one if smaller value is found.
+                UpdateBestEpochs(vScore, cvSetTrainAndEvalNodes, i, criteriaBestEpoch);
+            }
 
             if (m_useCVSetControlLRIfCVExists)
             {
@@ -941,7 +947,8 @@ void SGD<ElemType>::TrainOrAdaptModel(int startEpoch, ComputationNetworkPtr net,
     }
     // --- END OF MAIN EPOCH LOOP
 
-    if ((m_mpi == nullptr) || m_mpi->IsMainNode())
+    // Check if we need to save best model per criterion and this is the main node as well.
+    if (m_saveBestModelPerCriterion && ((m_mpi == nullptr) || m_mpi->IsMainNode()))
     {
         // For each criterion copies the best epoch to the new file with criterion name appended.
         CopyBestEpochs(criteriaBestEpoch, *this, m_maxEpochs - 1);
@@ -2527,14 +2534,17 @@ void SGD<ElemType>::SaveCheckPointInfo(const size_t epoch, const size_t totalSam
 
             fstream.PutMarker(FileMarker::fileMarkerEndSection, L"ECount");
 
-            fstream.PutMarker(FileMarker::fileMarkerBeginSection, L"BCriteria");
-            const int32_t criteriaSize = static_cast<int32_t>(criteriaBestEpoch.size());
-            fstream << criteriaSize;
-            for (const auto& criterion : criteriaBestEpoch)
+            if (m_saveBestModelPerCriterion)
             {
-                fstream << criterion.second.criterionMinValue << criterion.second.epochIndex;
+                fstream.PutMarker(FileMarker::fileMarkerBeginSection, L"BCriteria");
+                const int32_t criteriaSize = static_cast<int32_t>(criteriaBestEpoch.size());
+                fstream << criteriaSize;
+                for (const auto& criterion : criteriaBestEpoch)
+                {
+                    fstream << criterion.second.criterionMinValue << criterion.second.epochIndex;
+                }
+                fstream.PutMarker(FileMarker::fileMarkerEndSection, L"ECriteria");
             }
-            fstream.PutMarker(FileMarker::fileMarkerEndSection, L"ECriteria");
 
             fstream.PutMarker(FileMarker::fileMarkerEndSection, L"ECKP");
             if (m_pMASGDHelper)
