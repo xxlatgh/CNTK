@@ -48,7 +48,7 @@ public:
             dims[dims.size() - 1 - i] = (int)filt[i];
         // Set map count(aka K) dimension.
         dims[0] = (int)mapCount;
-        CUDNN_CALL(cudnnSetFilterNdDescriptor_v4(m_kernel, dataType, FILTER_FORMAT, (int)dims.size(), dims.data()));
+        CUDNN_CALL(cudnnSetFilterNdDescriptor(m_kernel, dataType, FILTER_FORMAT, (int)dims.size(), dims.data()));
     }
 
     ~CuDnnKernel()
@@ -84,14 +84,15 @@ public:
         // rightmost dimension in ConvolveGeometry tensors.
         SmallVector<int> stride(geometry.InputShape().GetRank() - 1);
         SmallVector<int> pad(stride.size());
+        SmallVector<int> dilation(stride.size());
         for (int i = 0; i < stride.size(); i++)
         {
             stride[stride.size() - 1 - i] = (int)geometry.GetStride(i);
             pad[stride.size() - 1 - i] = geometry.GetLowerPad(i);
+            dilation[stride.size() - 1 - i] = (int)geometry.GetDilation(i);
         }
-        SmallVector<int> upscale(stride.size(), 1);
         CUDNN_CALL(cudnnSetConvolutionNdDescriptor(m_conv, (int)stride.size(), pad.data(),
-                                                   stride.data(), upscale.data(),
+                                                   stride.data(), dilation.data(),
                                                    CUDNN_CROSS_CORRELATION, dataType));
     }
 
@@ -267,7 +268,7 @@ protected:
             if (accumulateGradient)
             {
                 // cudnnFindConvolutionBackwardDataAlgorithmEx will overwrite the output buffer, thus we create a temporary buffer here
-                // note this memory allocation might fail, so use try...catch for safety 
+                // note this memory allocation might fail, so use try...catch for safety
                 auto gradReplace = Matrix<ElemType>((grad.BufferSize() + sizeof(ElemType) - 1)/sizeof(ElemType), 1, m_deviceId);
                 result = cudnnFindConvolutionBackwardDataAlgorithmEx(*m_cudnn, *m_kernelT, ptr(kernel), m_outT, ptr(srcGrad), *m_conv, m_inT, ptr(gradReplace), MaxAlgoCount, &calgo, algoPerf, ptr(workspace), workspace.BufferSize());
                 gradReplace.ReleaseMemory();
@@ -314,7 +315,7 @@ protected:
             if (accumulateGradient)
             {
                 // cudnnFindConvolutionBackwardFilterAlgorithmEx will overwrite the output buffer, thus we create a temporary buffer here
-                // note this memory allocation might fail, so use try...catch for safety 
+                // note this memory allocation might fail, so use try...catch for safety
                 auto kernelGradReplace = Matrix<ElemType>((kernelGrad.BufferSize() + sizeof(ElemType) - 1)/sizeof(ElemType), 1, m_deviceId);
                 result = cudnnFindConvolutionBackwardFilterAlgorithmEx(*m_cudnn, m_inT, ptr(in), m_outT, ptr(srcGrad), *m_conv, *m_kernelT, ptr(kernelGradReplace), MaxAlgoCount, &calgo, algoPerf, ptr(workspace), workspace.BufferSize());
                 kernelGradReplace.ReleaseMemory();
@@ -469,10 +470,10 @@ private:
                     workspace.Resize((curSize + sizeof(ElemType) - 1) / sizeof(ElemType), 1, 0, false);
                 else
                     workspace.Resize((algo.AlgoWorkspaceSize + sizeof(ElemType) - 1) / sizeof(ElemType), 1, 0, false);
-            } 
-            catch (...) 
+            }
+            catch (...)
             {   // when it fails, it means accumulate is on, and allocation of temporary buffer failed. We resize to curSize and try again
-                fprintf(stderr, "Retrying with reduced workspace memory for convolution\n"); 
+                fprintf(stderr, "Retrying with reduced workspace memory for convolution\n");
                 workspace.Resize((curSize + sizeof(ElemType) - 1) / sizeof(ElemType), 1, 0, false);
                 try
                 {
@@ -496,8 +497,8 @@ private:
                     algo.maxAlgo = algo.selectedAlgo;
                     algo.autotuningState = AutotuningState::Running;
                     algo.AlgoWorkspaceSize = (*res).memory;
-                } 
-                catch (...) 
+                }
+                catch (...)
                 {   // fails again, let's fall back to cudnnGet
                     fprintf(stderr, "Fall back to use static finder to get the algorithm for convolution\n");
                     CUDNN_CALL(staticFinder(algo.selectedAlgo, false));

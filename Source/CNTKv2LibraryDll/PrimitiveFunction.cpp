@@ -378,14 +378,14 @@ namespace CNTK
                             assert(m_inputs.size() == 1);
 
                             std::vector<Axis> axis;
-                            std::vector<int> beginIndex, endIndex; 
+                            std::vector<int> beginIndex, endIndex;
                             if (m_attributes.Contains(PrimitiveFunction::AttributeNameAxisVec) &&
                                 m_attributes.Contains(PrimitiveFunction::AttributeNameBeginIndexVec) &&
                                 m_attributes.Contains(PrimitiveFunction::AttributeNameEndIndexVec))
                             {
                                 auto &axisDictionary = m_attributes[PrimitiveFunction::AttributeNameAxisVec].Value<std::vector<DictionaryValue>>();
                                 for (auto& value : axisDictionary)
-                                    axis.push_back(NormalizeStaticAxis(value.Value<Axis>(), m_inputs[0].Shape())); 
+                                    axis.push_back(NormalizeStaticAxis(value.Value<Axis>(), m_inputs[0].Shape()));
 
                                 beginIndex = AsVector<int>(m_attributes[PrimitiveFunction::AttributeNameBeginIndexVec].Value<std::vector<DictionaryValue>>());
                                 endIndex = AsVector<int>(m_attributes[PrimitiveFunction::AttributeNameEndIndexVec].Value<std::vector<DictionaryValue>>());
@@ -529,7 +529,7 @@ namespace CNTK
 
                             NDShape inferredInputShape = ConvolutionOpOutputShape(PrimitiveOpType::Pooling, outputShape, unpoolingWindowShape, inputMapCount, strides, sharing, autoPadding, lowerPad, upperPad, false, true);
                             if (inferredInputShape != inputShape)
-                                RuntimeError("Unpooling: The shape '%S' of the unpooling operand '%S' is different than the shape '%S from pooling the input argument '%S' using the provided options.", 
+                                RuntimeError("Unpooling: The shape '%S' of the unpooling operand '%S' is different than the shape '%S from pooling the input argument '%S' using the provided options.",
                                              inputShape.AsString().c_str(), m_inputs[0].AsString().c_str(), inferredInputShape.AsString().c_str(), m_inputs[1].AsString().c_str());
 
                             break;
@@ -603,7 +603,7 @@ namespace CNTK
                             auto& strides = m_attributes[PrimitiveFunction::AttributeNameStrides].Value<NDShape>();
                             auto& lowerPad = m_attributes[PrimitiveFunction::AttributeNameLowerPad].Value<NDShape>();
                             auto& upperPad = m_attributes[PrimitiveFunction::AttributeNameUpperPad].Value<NDShape>();
-                            NDShape tmpShape = NDShape::Unknown; 
+                            NDShape tmpShape = NDShape::Unknown;
                             if (m_attributes.Contains(PrimitiveFunction::AttributeNameOutputShape))
                                 tmpShape = m_attributes[PrimitiveFunction::AttributeNameOutputShape].Value<NDShape>();
                             auto sharing = AsVector<bool>(m_attributes[PrimitiveFunction::AttributeNameSharing].Value<std::vector<DictionaryValue>>());
@@ -631,17 +631,17 @@ namespace CNTK
                                                  "specified output shape '%S' using the provided options.",
                                                  inputShape.AsString().c_str(), m_inputs[1].AsString().c_str(), inferredInputShape.AsString().c_str(), tmpShape.AsString().c_str());
                                 }
-                                outputShape = tmpShape; 
+                                outputShape = tmpShape;
                             }
 
-                            auto kernelRank = kernelShape.Rank(); 
+                            auto kernelRank = kernelShape.Rank();
                             if (originalKernelShape != kernelShape)
                             {
                                 for (size_t i2 = 0; i2 < kernelRank; ++i2)
                                     m_inputs[0].m_dataFields->m_shape[i2] = kernelShape[i2];
                             }
                             if (transpose && m_inputs[0].m_dataFields->m_shape[kernelRank] == NDShape::InferredDimension)
-                                m_inputs[0].m_dataFields->m_shape[kernelRank] = outputMapCount[outputMapCount.Rank()-1]; 
+                                m_inputs[0].m_dataFields->m_shape[kernelRank] = outputMapCount[outputMapCount.Rank()-1];
 
                             m_attributes[PrimitiveFunction::AttributeNameSharing] = AsDictionaryValueVector(sharing);
                             m_attributes[PrimitiveFunction::AttributeNameAutoPadding] = AsDictionaryValueVector(autoPadding);
@@ -839,7 +839,7 @@ namespace CNTK
 
     static const std::wstring s_primitiveFunctionTypeValue = L"PrimitiveFunction";
 
-    /*virtual*/ Dictionary PrimitiveFunction::Serialize() const 
+    /*virtual*/ Dictionary PrimitiveFunction::Serialize() const
     {
         Dictionary dict;
 
@@ -850,7 +850,7 @@ namespace CNTK
         dict[uidKey] = Uid();
         if (!Name().empty())
             dict[nameKey] = Name();
-        
+
         auto inputs = Inputs();
         vector<DictionaryValue> inputUids;
         inputUids.reserve(inputs.size());
@@ -884,7 +884,7 @@ namespace CNTK
         return dict;
     }
 
-    /*static*/ FunctionPtr PrimitiveFunction::Deserialize(const Dictionary& dict, 
+    /*static*/ FunctionPtr PrimitiveFunction::Deserialize(const Dictionary& dict,
                                                           const std::unordered_map<std::wstring, Variable>& uidToVariableMap,
                                                           const std::unordered_set<FunctionPtr>& allPrimitiveFunctions,
                                                           const std::unordered_map<Variable, Variable>& placeholderReplacements,
@@ -900,8 +900,8 @@ namespace CNTK
         // This also applies to other enums (DataType, VariableKind, etc.)
         if (op >= PrimitiveOpType::UnknownOP)
         {
-            CNTK::LogicError("Unexpected op '%ls':'%u' (%s).", 
-                             opKey.c_str(), 
+            CNTK::LogicError("Unexpected op '%ls':'%u' (%s).",
+                             opKey.c_str(),
                              static_cast<std::underlying_type<CNTK::PrimitiveOpType>::type>(op),
                              GetVersionsString<PrimitiveFunction>(s_serializationVersion, version).c_str());
         }
@@ -962,7 +962,7 @@ namespace CNTK
         {
             if (GetTraceLevel() >= TraceLevel::Warning)
             {
-                // TODO: all logging functionality should be refactored to live in a logging utility class. 
+                // TODO: all logging functionality should be refactored to live in a logging utility class.
                 fprintf(stderr, "WARNING: the dictionary (version=%zu) does not contain a required "
                     "BatchNormalization parameter for the running mean sample count. "
                     "Injected a new parameter with a value of '0'.", version);
@@ -970,13 +970,13 @@ namespace CNTK
 
             // patch up old the model by adding an extra input
             auto runCount = Constant::Scalar(0.0f, device);
-            // HACK: uid has to be changed (by adding some unique prefix to the auto-generated "Constant"+ID_counter) 
+            // HACK: uid has to be changed (by adding some unique prefix to the auto-generated "Constant"+ID_counter)
             // to avoid conflicts with uids recorded in the function graph, which we are deserializing.
             runCount.m_dataFields->m_uid = L"BatchNormSampleCount" + runCount.m_dataFields->m_uid;
             inputs.push_back(runCount);
         }
-        
-        return std::shared_ptr<PrimitiveFunction>(new PrimitiveFunction(op, inputs, std::move(attributes), name, uid), 
+
+        return std::shared_ptr<PrimitiveFunction>(new PrimitiveFunction(op, inputs, std::move(attributes), name, uid),
                                                   [](PrimitiveFunction* ptr) { delete ptr; });
     }
 
@@ -986,7 +986,7 @@ namespace CNTK
     {
         if (!IsStateful())
             LogicError("Function '%S' is not stateful.", AsString().c_str());
-     
+
         Dictionary state;
         for (auto& key : s_stateAttributes)
         {
@@ -1031,7 +1031,7 @@ namespace CNTK
             // If kernel has a lower rank than the input then the remaining dimensions are to be reduced over.
             size_t filterRank = kernelShape.Rank();
 
-            // If the trailing axis dimensionality of the kernel shape is NDShape::InferredDimension, we reduce over it by 
+            // If the trailing axis dimensionality of the kernel shape is NDShape::InferredDimension, we reduce over it by
             // picking the corresponding operand shape dimensionality
             // This is done by shrinking the filter rank and let the dimensions be inferred from the operand's shape
             // TODO: Should we do this for all of the axes in kernelShape that have a dimensionailty of NDShape::InferredDimension?
@@ -1060,7 +1060,7 @@ namespace CNTK
         else
             computeOutputShapeFunc = &Microsoft::MSR::CNTK::ConvolveGeometry::ComputeInputShape;
 
-        return AsNDShape(computeOutputShapeFunc(AsTensorShape(operandShape), AsTensorShape(kernelShape), AsTensorShape(outputMapCount), AsTensorShape(strides), sharing, autoPad, AsTensorShape(lowerPad), AsTensorShape(upperPad), ceilOutputDim));
+        return AsNDShape(computeOutputShapeFunc(AsTensorShape(operandShape), AsTensorShape(kernelShape), AsTensorShape(outputMapCount), AsTensorShape(strides), sharing, autoPad, AsTensorShape(lowerPad), AsTensorShape(upperPad), Microsoft::MSR::CNTK::TensorShape(1), ceilOutputDim));
     }
 
     /*static*/ bool PrimitiveFunction::UpdateOperandShapes(std::vector<std::pair<Variable, NDShape>>& newOperandShapes)
