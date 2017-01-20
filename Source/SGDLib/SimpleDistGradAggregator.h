@@ -262,8 +262,18 @@ private:
         // Perform async allreduce on the gradient data
         if (!m_nccl.IsSupported())
         {
-            MPI_Allreduce(MPI_IN_PLACE, m_AggregationBuffer->Data(), m_AggregationBuffer->GetNumElements(),
-                          MPIWrapper::GetDataType(m_AggregationBuffer->Data()), MPI_SUM, m_mpi->Communicator()) || MpiFail("MPI_Allreduce");
+            if (deviceId >= 0)
+            {
+                m_gpuDataTransferers->WaitForCopyGPUToCPUAsync();
+                MPI_Allreduce(MPI_IN_PLACE, m_intermediateCPUBuffers->Data(), m_intermediateCPUBuffers->GetNumElements(),
+                    MPIWrapper::GetDataType(m_intermediateCPUBuffers->Data()), MPI_SUM, m_mpi->Communicator()) || MpiFail("MPI_Allreduce");
+            }
+            else
+            {
+                MPI_Allreduce(MPI_IN_PLACE, m_AggregationBuffer->Data(), m_AggregationBuffer->GetNumElements(),
+                    MPIWrapper::GetDataType(m_AggregationBuffer->Data()), MPI_SUM, m_mpi->Communicator()) || MpiFail("MPI_Allreduce");
+            }
+            
         } 
         else if (m_nccl.IsSupported())
         {
