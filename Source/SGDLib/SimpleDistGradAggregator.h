@@ -156,14 +156,13 @@ private:
                 if (gradients[i]->GetMatrixType() != DENSE)
                     RuntimeError("Gradient aggregation for sparse gradient matrices is currently unsupported!");
 
-                if (!m_nccl.IsSupported() && deviceId != CPUDEVICE)
-                {
-                    m_gpuDataTransferers = std::make_unique<GPUDataTransferer>(deviceId, m_useAsyncAggregation);
-                    m_intermediateCPUBuffers = AllocateIntermediateBuffer(deviceId, gradients[i]->GetNumElements());
-                }
-
                 if (m_useAsyncAggregation)
                     m_bufferedGradients[gradients[i]].reset(new Matrix<ElemType>(gradients[i]->GetNumRows(), gradients[i]->GetNumCols(), deviceId));
+            }
+            if (!m_nccl.IsSupported() && deviceId != CPUDEVICE)
+            {
+                m_gpuDataTransferers = std::make_unique<GPUDataTransferer>(deviceId, m_useAsyncAggregation);
+                m_intermediateCPUBuffers = AllocateIntermediateBuffer(deviceId, totalGradientsSizeInElements);
             }
 
             if (m_useAsyncAggregation)
@@ -230,7 +229,7 @@ private:
 
         // Initiate transfer of the gradient matrices to the CPU if needed
         // Copy all gradient data into a single contiguous buffer
-        int offset = 0;
+        size_t offset = 0;
         for (size_t i = 0; i < numGradMatrices; ++i)
         {
             m_AggregationBuffer->ColumnSlice(offset, gradients[i]->GetNumElements()).AssignValuesOf(gradients[i]->Reshaped(1, gradients[i]->GetNumElements()));
