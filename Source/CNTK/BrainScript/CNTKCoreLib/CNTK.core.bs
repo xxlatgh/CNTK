@@ -111,13 +111,14 @@ ConvolutionTransposeLayer {numOutputChannels,
                            stride = 1, pad = false, 
                            lowerPad = 0, upperPad = 0, 
                            outputShape = 0, 
-                           maxTempMemSizeInSamples = 0} =
+                           maxTempMemSizeInSamples = 0,
+                           learningRateMultiplier = 1.0} =
 {
     outputChannelsShape = _AsArray (numOutputChannels)
     kernelShape = _ConcatArrays (filterShape, outputChannelsShape) 
     paramShape = _ConcatArrays (kernelShape, _AsArray (numInputChannels)) 
-    W = ParameterTensor{paramShape, init=init, initValueScale=initValueScale, initOnCPUOnly=true}
-    b = ParameterTensor(_ConcatArrays (Repeat (Length (filterShape), 1), outputChannelsShape), initValue = initBias)
+    W = ParameterTensor{paramShape, init=init, initValueScale=initValueScale, initOnCPUOnly=true, learningRateMultiplier = learningRateMultiplier}
+    b = ParameterTensor(_ConcatArrays (Repeat (Length (filterShape), 1), outputChannelsShape), initValue = initBias, learningRateMultiplier = learningRateMultiplier)
     sharing = true    # TODO: support this
     apply (x) = {
         c = Convolution (W, x, kernelShape, mapDims=numInputChannels, stride=stride, sharing=sharing, autoPadding=pad, lowerPad=lowerPad, upperPad=upperPad, transposeFlag=true, outputShape = outputShape, maxTempMemSizeInSamples = maxTempMemSizeInSamples)
