@@ -30,7 +30,6 @@
 #endif
 
 #include "CNTKLibraryInternals.h"
-const size_t DEFAULT_PACK_THRESHOLD_SIZE_IN_BYTE = 32 * 1024;
 
 namespace CNTK
 {
@@ -4632,7 +4631,7 @@ namespace CNTK
     ///
     /// Built-in MPI-based communicator.
     ///
-    CNTK_API DistributedCommunicatorPtr MPICommunicator(size_t packThresholdSizeInBytes = DEFAULT_PACK_THRESHOLD_SIZE_IN_BYTE);
+    CNTK_API DistributedCommunicatorPtr MPICommunicator(size_t packThresholdSizeInBytes = 32 * 1024);
 
     ///
     /// Distributed communicator that allows quantized aggregations.

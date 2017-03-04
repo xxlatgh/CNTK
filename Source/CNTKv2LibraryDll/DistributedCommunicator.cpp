@@ -332,10 +332,6 @@ namespace CNTK
         std::unique_ptr<Matrix<float>> aggregationBufferFloat;
         std::unique_ptr<Matrix<double>> aggregationBufferDouble;
 
-        // Do the packing to reduce the number of MPI requests.
-        // TODO: Junjie, please assert that all packed gradients have the same device.
-        // TODO: Also move to a speparate function and get rid of code duplication please.
-        // TODO: make buffers to be member of MPICommunicatorImpl, so that they are not allocated on each call.
         if (packedFloatGradientsIndex.size() > 1)
         {
             aggregationBufferFloat.reset(new (std::nothrow) Matrix<float>(1, packedFloatGradientsSizeInBytes / sizeof(float),
@@ -362,54 +358,59 @@ namespace CNTK
             aggregationBufferDouble.reset();
         }
 
-        if (aggregationBufferFloat == nullptr && aggregationBufferDouble == nullptr)
+        if (aggregationBufferFloat != nullptr)
         {
-            packedFloatGradientsSizeInBytes = 0;
-            packedFloatGradientsIndex.clear();
-            packedDoubleGradientsSizeInBytes = 0;
-            packedDoubleGradientsIndex.clear();
-            valuesToAggregate.clear();
-            valuesAfterAggregate.clear();
-            valuesToAggregate = inputValues;
-            valuesAfterAggregate = outputValues;
+            size_t offset = 0;
+            for (size_t i : packedFloatGradientsIndex)
+            {
+                assert(inputValues[i]->Device() == inputValues[packedFloatGradientsIndex.front()]->Device());
+                auto gradient = GetWritableMatrix<float>(inputValues[i]);
+                aggregationBufferFloat->ColumnSlice(offset, gradient->GetNumElements()).AssignValuesOf(gradient->Reshaped(1, gradient->GetNumElements()));
+                offset += gradient->GetNumElements();
+            }
+            ::CNTK::NDShape shape{ aggregationBufferFloat->GetNumElements() };
+            auto data = ::CNTK::MakeSharedObject<::CNTK::NDArrayView>(DataType::Float, shape, aggregationBufferFloat->Data(),
+                packedFloatGradientsSizeInBytes, inputValues[packedFloatGradientsIndex[0]]->Device());
+            valuesToAggregate.push_back(data);
+            valuesAfterAggregate.push_back(data);
         }
         else
         {
-            // TODO: Junjie please also move this into a separate function that is templatized and get rid of code duplicaiton.
-            if (aggregationBufferFloat != nullptr)
+            for (size_t i : packedFloatGradientsIndex)
             {
-                size_t offset = 0;
-                for (size_t i : packedFloatGradientsIndex)
-                {
-                    auto gradient = GetWritableMatrix<float>(inputValues[i]);
-                    aggregationBufferFloat->ColumnSlice(offset, gradient->GetNumElements()).AssignValuesOf(gradient->Reshaped(1, gradient->GetNumElements()));
-                    offset += gradient->GetNumElements();
-                }
-                ::CNTK::NDShape shape{ aggregationBufferFloat->GetNumElements() };
-                auto data = ::CNTK::MakeSharedObject<::CNTK::NDArrayView>(DataType::Float, shape, aggregationBufferFloat->Data(),
-                    packedFloatGradientsSizeInBytes, inputValues[packedFloatGradientsIndex[0]]->Device());
-                valuesToAggregate.push_back(data);
-                valuesAfterAggregate.push_back(data);
+                valuesToAggregate.push_back(inputValues[i]);
+                valuesAfterAggregate.push_back(outputValues[i]);
             }
-
-            if (aggregationBufferDouble != nullptr)
-            {
-                size_t offset = 0;
-                for (size_t i : packedDoubleGradientsIndex)
-                {
-                    auto gradient = GetWritableMatrix<double>(inputValues[i]);
-                    aggregationBufferDouble->ColumnSlice(offset, gradient->GetNumElements()).AssignValuesOf(gradient->Reshaped(1, gradient->GetNumElements()));
-                    offset += gradient->GetNumElements();
-                }
-                ::CNTK::NDShape shape{ aggregationBufferDouble->GetNumElements() };
-                auto data = ::CNTK::MakeSharedObject<::CNTK::NDArrayView>(DataType::Float, shape, aggregationBufferDouble->Data(),
-                    packedDoubleGradientsSizeInBytes, inputValues[packedDoubleGradientsIndex[0]]->Device());
-                valuesToAggregate.push_back(data);
-                valuesAfterAggregate.push_back(data);
-            }
+            packedFloatGradientsIndex.clear();
         }
-        numValues = valuesToAggregate.size();
 
+        if (aggregationBufferDouble != nullptr)
+        {
+            size_t offset = 0;
+            for (size_t i : packedDoubleGradientsIndex)
+            {
+                //assert(inputValues[i]->Device() == inputValues[packedDoubleGradientsIndex.front()]->Device());
+                auto gradient = GetWritableMatrix<double>(inputValues[i]);
+                aggregationBufferDouble->ColumnSlice(offset, gradient->GetNumElements()).AssignValuesOf(gradient->Reshaped(1, gradient->GetNumElements()));
+                offset += gradient->GetNumElements();
+            }
+            ::CNTK::NDShape shape{ aggregationBufferDouble->GetNumElements() };
+            auto data = ::CNTK::MakeSharedObject<::CNTK::NDArrayView>(DataType::Float, shape, aggregationBufferDouble->Data(),
+                packedDoubleGradientsSizeInBytes, inputValues[packedDoubleGradientsIndex[0]]->Device());
+            valuesToAggregate.push_back(data);
+            valuesAfterAggregate.push_back(data);
+        }
+        else
+        {
+            for (size_t i : packedDoubleGradientsIndex)
+            {
+                valuesToAggregate.push_back(inputValues[i]);
+                valuesAfterAggregate.push_back(outputValues[i]);
+            }
+            packedDoubleGradientsIndex.clear();
+        }
+
+        numValues = valuesToAggregate.size();
         Initialize(valuesToAggregate);
 
         // for all values residing on GPU initiate async transfer to CPU buffers.
