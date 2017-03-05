@@ -6,6 +6,7 @@
 #pragma once
 
 #include "CNTKLibrary.h"
+#include "NcclComm.h"
 #include <MatrixQuantizerImpl.h>
 
 namespace Microsoft { namespace MSR { namespace CNTK {
@@ -109,5 +110,7 @@ namespace CNTK
         void CheckWorkers(const std::unordered_set<DistributedWorkerDescriptor>& sendToWorkers);
 
         Microsoft::MSR::CNTK::MPIWrapperPtr m_mpi;
+
+        std::unique_ptr<Microsoft::MSR::CNTK::NcclComm> m_nccl;
     };
 }
