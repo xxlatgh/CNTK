@@ -6,13 +6,16 @@ import math
 try:
   from .utils import *
   from .reasonet import *
+  from .prepare_cnn_data import prepare_data
 except Exception:
   from utils import *
   from reasonet import *
+  from prepare_cnn_data import prepare_data
 from cntk import load_model
 
 module_path = os.path.abspath(os.path.dirname(os.path.abspath(__file__)))
 def pred_cnn_model(model_path, output):  
+  prepare_data()
   logger.init("cnn_test")
   if os.path.exists(output):
     os.remove(output)
@@ -50,7 +53,7 @@ def pred_cnn_model(model_path, output):
     mb = test_data.next_minibatch(mbs, bind)
     pred = predict_func.eval(mb)
     ans = np.nonzero(pred)
-    with open(output, mode='a') as outf:
+    with open(output, mode='a', encoding='utf-8') as outf:
       for id in ans[1]:
         outf.write("{0}\t{1}\n".format(instance_id, entity_table.lookup_by_id(id)))
         instance_id += 1
@@ -59,8 +62,6 @@ def pred_cnn_model(model_path, output):
     samples_sum += samples
     sys.stdout.write('.')
     sys.stdout.flush()
-    #print("")
-    #print("{}:{}: acc: {}, avg: {}".format(m,samples_sum, acc/samples, acc_sum/samples_sum))
   end = os.times()
   total = end.elapsed - start.elapsed
   print("")

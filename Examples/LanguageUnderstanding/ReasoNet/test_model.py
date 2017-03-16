@@ -6,13 +6,16 @@ import math
 try:
   from .utils import *
   from .reasonet import *
+  from .prepare_cnn_data import prepare_data
 except Exception:
   from utils import *
   from reasonet import *
+  from prepare_cnn_data import prepare_data
 from cntk import load_model
 
 module_path = os.path.abspath(os.path.dirname(os.path.abspath(__file__)))
 def test_cnn_model(model_path):  
+  prepare_data()
   logger.init("cnn_test")
   test_path = os.path.join(module_path, "Data/cnn/test.ctf")
   test_size=2291183
@@ -61,4 +64,4 @@ def test_cnn_model(model_path):
   print("")
   print("Evaluation acc: {0}, loss: {1}, samples: {2} in {3} seconds".format(acc_sum/samples_sum, loss_sum/samples_sum, samples_sum, total))
 
-test_cnn_model("model/model_training.ctf_001.dnn")
+test_cnn_model("model/model_training.ctf_007.dnn")

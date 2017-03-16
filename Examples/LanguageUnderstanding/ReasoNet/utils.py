@@ -41,7 +41,7 @@ class logger:
       logger.init()
     if toconsole:
       print(message)
-    with open(logger.__logfile, 'a') as logf:
+    with open(logger.__logfile, 'a', encoding='utf-8') as logf:
       logf.write("{}| {}\n".format(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), message))
 
 class uniform_initializer:
@@ -70,7 +70,7 @@ def load_embedding(embedding_path, vocab_path, dim, init=None):
   vocab_dim = len(entity_vocab) + len(word_vocab) + 1
   entity_size = len(entity_vocab)
   item_embedding = [None]*vocab_dim
-  with open(embedding_path, 'r') as embedding:
+  with open(embedding_path, 'r', encoding='utf-8') as embedding:
     for line in embedding.readlines():
       line = line.strip('\n')
       item = line.split(' ')
