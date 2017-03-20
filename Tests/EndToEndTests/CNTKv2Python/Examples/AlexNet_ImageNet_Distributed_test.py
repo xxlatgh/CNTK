@@ -27,7 +27,7 @@ script_under_test = os.path.join(example_dir, "AlexNet_ImageNet_Distributed.py")
 
 mpiexec_params = [ "-n", "2"]
 
-def test_alexnet_imagenet_distributed(device_id):
+def _test_alexnet_imagenet_distributed(device_id):
     params = [ "-n", "2",
                "-datadir", prepare_ImageNet_data(),
                "-q", "32",
@@ -37,7 +37,7 @@ def test_alexnet_imagenet_distributed(device_id):
                "-device", str(device_id) ]
     mpiexec_test(device_id, script_under_test, mpiexec_params, params, 0.99, True)
 
-def test_alexnet_imagenet_distributed_1bitsgd(device_id):
+def _test_alexnet_imagenet_distributed_1bitsgd(device_id):
     params = [ "-n", "2",
                "-datadir", prepare_ImageNet_data(),
                "-q", "1",
@@ -48,7 +48,9 @@ def test_alexnet_imagenet_distributed_1bitsgd(device_id):
     mpiexec_test(device_id, script_under_test, mpiexec_params, params, 0.99, True)
 
 # TODO Flaky on our linux machines?
-def disabled_test_alexnet_imagenet_distributed_block_momentum(device_id):
+@pytest.mark.parametrize("x", list(range(20)))
+def test_alexnet_imagenet_distributed_block_momentum(x, device_id):
+    print('Test No. %d' % (x))
     params = [ "-n", "2",
                "-m", "8",
                "-e", "16",
