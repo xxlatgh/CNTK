@@ -6,6 +6,11 @@ import sys
 import tarfile
 import zipfile
 import shutil
+try:
+  from .wordvocab import *
+except Exception:
+  from wordvocab import *
+
 
 def merge_files(folder, target):
   if os.path.exists(target):
@@ -64,37 +69,34 @@ def download_glove_retrained_embedding(target="."):
 def file_exists(src):
   return (os.path.isfile(src) and os.path.exists(src))
 
-py_path = os.path.abspath(os.path.dirname(os.path.abspath(__file__)))
-
-try:
-  from .wordvocab import *
-except Exception:
-  from wordvocab import *
-
-data_path = os.path.join(py_path, "Data")
-raw_train_data=os.path.join(data_path, "cnn/training.txt")
-raw_test_data=os.path.join(data_path, "cnn/test.txt")
-raw_validation_data=os.path.join(data_path, "cnn/validation.txt")
-if not (file_exists(raw_train_data) and file_exists(raw_test_data) and file_exists(raw_validation_data)):
-  download_cnn(data_path)
-
-merge_files(os.path.join(data_path, "cnn/questions/training"), raw_train_data)
-merge_files(os.path.join(data_path, "cnn/questions/test"), raw_test_data)
-merge_files(os.path.join(data_path, "cnn/questions/validation"), raw_validation_data)
-print("All necessary cnn data are downloaded to {0}".format(data_path))
-
-vocab_path=os.path.join(data_path, "cnn/cnn.vocab")
-train_ctf=os.path.join(data_path, "cnn/training.ctf")
-test_ctf=os.path.join(data_path, "cnn/test.ctf")
-validation_ctf=os.path.join(data_path, "cnn/validation.ctf")
-vocab_size=101000
-if not (file_exists(train_ctf) and file_exists(test_ctf) and file_exists(validation_ctf)):
-  entity_vocab, word_vocab = Vocabulary.build_vocab(raw_train_data, vocab_path, vocab_size)
-  Vocabulary.build_corpus(entity_vocab, word_vocab, raw_train_data, train_ctf)
-  Vocabulary.build_corpus(entity_vocab, word_vocab, raw_test_data, test_ctf)
-  Vocabulary.build_corpus(entity_vocab, word_vocab, raw_validation_data, validation_ctf)
-print("Training data conversion finished.")
-
-if not file_exists(os.path.join(data_path, "glove/glove.6B.100d.txt")):
-  download_glove_retrained_embedding(data_path)
-print("Glove embedding data downloaded.")
+def prepare_data():
+  py_path = os.path.abspath(os.path.dirname(os.path.abspath(__file__)))
+  
+  
+  data_path = os.path.join(py_path, "Data")
+  raw_train_data=os.path.join(data_path, "cnn/training.txt")
+  raw_test_data=os.path.join(data_path, "cnn/test.txt")
+  raw_validation_data=os.path.join(data_path, "cnn/validation.txt")
+  if not (file_exists(raw_train_data) and file_exists(raw_test_data) and file_exists(raw_validation_data)):
+    download_cnn(data_path)
+  
+  merge_files(os.path.join(data_path, "cnn/questions/training"), raw_train_data)
+  merge_files(os.path.join(data_path, "cnn/questions/test"), raw_test_data)
+  merge_files(os.path.join(data_path, "cnn/questions/validation"), raw_validation_data)
+  print("All necessary cnn data are downloaded to {0}".format(data_path))
+  
+  vocab_path=os.path.join(data_path, "cnn/cnn.vocab")
+  train_ctf=os.path.join(data_path, "cnn/training.ctf")
+  test_ctf=os.path.join(data_path, "cnn/test.ctf")
+  validation_ctf=os.path.join(data_path, "cnn/validation.ctf")
+  vocab_size=101000
+  if not (file_exists(train_ctf) and file_exists(test_ctf) and file_exists(validation_ctf)):
+    entity_vocab, word_vocab = Vocabulary.build_vocab(raw_train_data, vocab_path, vocab_size)
+    Vocabulary.build_corpus(entity_vocab, word_vocab, raw_train_data, train_ctf)
+    Vocabulary.build_corpus(entity_vocab, word_vocab, raw_test_data, test_ctf)
+    Vocabulary.build_corpus(entity_vocab, word_vocab, raw_validation_data, validation_ctf)
+  print("Training data conversion finished.")
+  
+  if not file_exists(os.path.join(data_path, "glove/glove.6B.100d.txt")):
+    download_glove_retrained_embedding(data_path)
+  print("Glove embedding data downloaded.")

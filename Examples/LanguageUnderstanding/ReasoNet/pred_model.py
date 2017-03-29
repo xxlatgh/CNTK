@@ -6,13 +6,16 @@ import math
 try:
   from .utils import *
   from .reasonet import *
+  from .prepare_cnn_data import prepare_data
 except Exception:
   from utils import *
   from reasonet import *
+  from prepare_cnn_data import prepare_data
 from cntk import load_model
 
 module_path = os.path.abspath(os.path.dirname(os.path.abspath(__file__)))
 def pred_cnn_model(model_path, output):  
+  prepare_data()
   logger.init("cnn_test")
   if os.path.exists(output):
     os.remove(output)
