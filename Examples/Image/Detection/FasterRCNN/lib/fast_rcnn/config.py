@@ -34,8 +34,13 @@ cfg = __C
 
 __C.CNTK = edict()
 
-__C.CNTK.ROIS_PER_IMAGE = 100
+__C.CNTK.MAX_EPOCHS = 20
+
+__C.CNTK.ROIS_PER_IMAGE = 1000
 __C.CNTK.NUM_CLASSES = 17
+__C.CNTK.DEBUG_FWD = False
+__C.CNTK.DEBUG_BKW = False
+__C.CNTK.DEBUG_LAYERS = False
 
 
 #

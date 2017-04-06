@@ -5,8 +5,16 @@
 # ==============================================================================
 
 from __future__ import print_function
-import numpy as np
+#import numpy as np
 import os, sys
+from matplotlib.pyplot import imshow, imsave
+from PIL import ImageFont
+
+available_font = "arial.ttf"
+try:
+    dummy = ImageFont.truetype(available_font, 16)
+except:
+    available_font = "FreeMono.ttf"
 
 abs_path = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(abs_path)
@@ -20,7 +28,7 @@ from cntk import *
 #from cntk import Trainer, UnitType, load_model, user_function, Axis, input, parameter, times, combine, relu, softmax, roipooling, reduce_sum, slice, splice, reshape, plus, CloneMethod
 #from cntk.ops import parameter, times, combine, relu, softmax, roipooling, reduce_sum, slice, splice, reshape, plus
 #from cntk.ops.functions import CloneMethod
-from cntk.io import MinibatchSource, ImageDeserializer, CTFDeserializer, StreamDefs, StreamDef
+from cntk.io import MinibatchSource, ImageDeserializer, CTFDeserializer, StreamDefs, StreamDef, TraceLevel
 from cntk.io.transforms import scale
 from cntk.initializer import glorot_uniform
 from cntk.layers import placeholder, Convolution, Constant
@@ -34,11 +42,13 @@ from lib.rpn.cntk_proposal_layer import ProposalLayer
 from lib.rpn.cntk_proposal_target_layer import ProposalTargetLayer
 from lib.rpn.cntk_smoothL1_loss import SmoothL1Loss
 from lib.rpn.cntk_ignore_label import IgnoreLabel
+from cntk_helpers import visualizeResultsFaster
+from lib.fast_rcnn.config import cfg
 
 ###############################################################
 ###############################################################
 make_mode = False
-graph_type = "pdf" # "png" or "pdf"
+graph_type = "png" # "png" or "pdf"
 
 # file and stream names
 map_filename_postfix = '.imgMap.txt'
@@ -47,17 +57,37 @@ features_stream_name = 'features'
 roi_stream_name = 'roiAndLabel'
 
 # from PARAMETERS.py
-base_path = "C:/src/CNTK/Examples/Image/Detection/FastRCNN/proc/Grocery_100/rois/"
-num_channels = 3
-image_height = 1000
-image_width = 1000
-num_classes = 17
-num_rois = 100
-epoch_size = 25
-num_test_images = 5
-mb_size = 1
-max_epochs = 3 # 3
-momentum_time_constant = 10
+grocery = False
+if grocery:
+    classes = ('__background__',  # always index 0
+               'avocado', 'orange', 'butter', 'champagne', 'eggBox', 'gerkin', 'joghurt', 'ketchup',
+               'orangeJuice', 'onion', 'pepper', 'tomato', 'water', 'milk', 'tabasco', 'mustard')
+    base_path = "C:/src/CNTK/Examples/Image/Detection/FastRCNN/proc/Grocery_100/rois/"
+    num_channels = 3
+    image_height = 1000
+    image_width = 1000
+    num_classes = 17
+    num_rois = cfg["CNTK"].ROIS_PER_IMAGE
+    epoch_size = 25
+    num_test_images = 5
+    mb_size = 1
+    max_epochs = cfg["CNTK"].MAX_EPOCHS
+    momentum_time_constant = 10
+else:
+    classes = ('__background__',  # always index 0
+               'aeroplane', 'bicycle', 'bird', 'boat', 'bottle', 'bus', 'car', 'cat', 'chair', 'cow', 'diningtable',
+               'dog', 'horse', 'motorbike', 'person', 'pottedplant', 'sheep', 'sofa', 'train', 'tvmonitor')
+    base_path = "C:/src/CNTK/Examples/Image/Detection/FastRCNN/proc/Grocery_100/rois/"
+    num_channels = 3
+    image_height = 1000
+    image_width = 1000
+    num_classes = 17
+    num_rois = cfg["CNTK"].ROIS_PER_IMAGE
+    epoch_size = 25
+    num_test_images = 5
+    mb_size = 1
+    max_epochs = cfg["CNTK"].MAX_EPOCHS
+    momentum_time_constant = 10
 
 # model specific variables (only AlexNet for now)
 base_model = "AlexNet"
@@ -99,7 +129,7 @@ def create_mb_source(img_height, img_width, img_channels, n_rois, data_path):
         roiAndLabel = StreamDef(field=roi_stream_name, shape=rois_dim, is_sparse=False)))
 
     # define a composite reader
-    return MinibatchSource([image_source, roi_source], epoch_size=sys.maxsize, randomize=True)
+    return MinibatchSource([image_source, roi_source], epoch_size=sys.maxsize, randomize=True, trace_level=TraceLevel.Error)
 
 
 def create_test_mb_source(img_height, img_width, img_channels, n_rois, data_path):
@@ -119,7 +149,7 @@ def create_test_mb_source(img_height, img_width, img_channels, n_rois, data_path
         features = StreamDef(field='image', transforms=transforms)))
 
     # define a composite reader
-    return MinibatchSource([image_source], epoch_size=sys.maxsize, randomize=False)
+    return MinibatchSource([image_source], epoch_size=sys.maxsize, randomize=False, trace_level=TraceLevel.Error)
 
 
 # Defines the Faster R-CNN network model for detecting objects in images
@@ -284,9 +314,9 @@ def train_faster_rcnn(debug_output=False):
     mm_schedule = momentum_as_time_constant_schedule(momentum_time_constant)
 
     # Instantiate the trainer object
-    learner = momentum_sgd(cls_score.parameters, lr_schedule, mm_schedule, l2_regularization_weight=l2_reg_weight)
+    learner = momentum_sgd(loss.parameters, lr_schedule, mm_schedule, l2_regularization_weight=l2_reg_weight)
     ##trainer = Trainer(frcn_output, (ce, pe), learner)
-    trainer = Trainer(cls_score, (loss, pred_error), learner)
+    trainer = Trainer(None, (loss, pred_error), learner)
 
     # Get minibatches of images and perform model training
     print("Training Faster R-CNN model for %s epochs." % max_epochs)
@@ -309,6 +339,13 @@ def train_faster_rcnn(debug_output=False):
 
 # Tests a Faster R-CNN model
 def eval_faster_rcnn(model, debug_output=False):
+    # get image paths
+    path = os.path.normpath(os.path.join(abs_path, base_path))
+    map_file = os.path.join(path, "train" + map_filename_postfix)
+    with open(map_file) as f:
+        content = f.readlines()
+    img_file_names = [x.split('\t')[1] for x in content]
+
     image_input = input((num_channels, image_height, image_width), dynamic_axes=[Axis.default_batch_axis()], name='img_input')
     frcn_eval = create_eval_model(model, image_input)
 
@@ -322,34 +359,36 @@ def eval_faster_rcnn(model, debug_output=False):
 
     # evaluate test images and write netwrok output to file
     print("Evaluating Faster R-CNN model for %s images." % num_test_images)
-    results_file_path = base_path + "test.z"
-    with open(results_file_path, 'wb') as results_file:
-        for i in range(0, num_test_images):
-            data = test_minibatch_source.next_minibatch(1, input_map=input_map)
-            output = frcn_eval.eval(data)
+    #results_file_path = base_path + "test.z"
+    #with open(results_file_path, 'wb') as results_file:
+    for i in range(0, num_test_images):
+        data = test_minibatch_source.next_minibatch(1, input_map=input_map)
+        output = frcn_eval.eval(data)
 
-            out_dict = dict([(k.name, k) for k in output])
-            out_cls_pred = output[out_dict['cls_pred']]
-            out_rpn_rois = output[out_dict['rpn_rois']]
-            out_bbox_regr = output[out_dict['bbox_regr']]
+        out_dict = dict([(k.name, k) for k in output])
+        out_cls_pred = output[out_dict['cls_pred']][0]
+        out_rpn_rois = output[out_dict['rpn_rois']][0]
+        out_bbox_regr = output[out_dict['bbox_regr']][0]
 
-            import pdb; pdb.set_trace()
+        imgPath = img_file_names[i]
+        labels = out_cls_pred.argmax(axis=1)
+        scores = out_cls_pred.max(axis=1).tolist()
 
-            out_values = output[0, 0].flatten()
-            np.savetxt(results_file, out_values[np.newaxis], fmt="%.6f")
-            if (i+1) % 100 == 0:
-                print("Evaluated %s images.." % (i+1))
+        #import pdb; pdb.set_trace()
+
+        # visualize results
+        imgDebug = visualizeResultsFaster(imgPath, labels, scores, out_rpn_rois, 1000, 1000,
+                                    classes, nmsKeepIndices=None, boDrawNegativeRois=True)
+
+        imsave("c:/temp/{}{}".format(i, os.path.basename(imgPath)), imgDebug)
 
     return
-
 
 # The main method trains and evaluates a Fast R-CNN model.
 # If a trained model is already available it is loaded an no training will be performed.
 if __name__ == '__main__':
     os.chdir(base_path)
     model_path = os.path.join(abs_path, "faster_rcnn_py.model")
-
-    #import pdb; pdb.set_trace()
 
     # Train only if no model exists yet
     if os.path.exists(model_path) and make_mode:

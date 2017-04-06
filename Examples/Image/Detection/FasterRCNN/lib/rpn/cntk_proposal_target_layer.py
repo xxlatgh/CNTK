@@ -15,9 +15,9 @@ from fast_rcnn.config import cfg
 from fast_rcnn.bbox_transform import bbox_transform
 from utils.cython_bbox import bbox_overlaps
 
-DEBUG = True
-debug_fwd = True
-debug_bkw = True
+DEBUG = cfg["CNTK"].DEBUG_LAYERS
+debug_fwd = cfg["CNTK"].DEBUG_FWD
+debug_bkw = cfg["CNTK"].DEBUG_BKW
 
 #class ProposalTargetLayer(caffe.Layer):
 class ProposalTargetLayer(UserFunction):
@@ -83,7 +83,10 @@ class ProposalTargetLayer(UserFunction):
         gt_boxes[:, :-1] = ngtb.transpose() * whwh
 
         # remove zero padded ground truth boxes
-        keep = np.where((gt_boxes[:,2] - gt_boxes[:,0]) * (gt_boxes[:,3] - gt_boxes[:,1]) > 0)
+        keep = np.where(
+            ((gt_boxes[:,2] - gt_boxes[:,0]) > 0) &
+            ((gt_boxes[:,3] - gt_boxes[:,1]) > 0)
+        )
         gt_boxes = gt_boxes[keep]
 
         assert gt_boxes.shape[0] > 0, \

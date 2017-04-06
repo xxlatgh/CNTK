@@ -17,9 +17,9 @@ from fast_rcnn.config import cfg
 from fast_rcnn.bbox_transform import bbox_transform
 from utils.cython_bbox import bbox_overlaps
 
-DEBUG = False
-debug_fwd = True
-debug_bkw = True
+DEBUG = cfg["CNTK"].DEBUG_LAYERS
+debug_fwd = cfg["CNTK"].DEBUG_FWD
+debug_bkw = cfg["CNTK"].DEBUG_BKW
 
 class AnchorTargetLayer(UserFunction):
     """
@@ -110,7 +110,10 @@ class AnchorTargetLayer(UserFunction):
         gt_boxes[:, :-1] = ngtb.transpose() * whwh
 
         # remove zero padded ground truth boxes
-        keep = np.where((gt_boxes[:,2] - gt_boxes[:,0]) * (gt_boxes[:,3] - gt_boxes[:,1]) > 0)
+        keep = np.where(
+            ((gt_boxes[:,2] - gt_boxes[:,0]) > 0) &
+            ((gt_boxes[:,3] - gt_boxes[:,1]) > 0)
+        )
         gt_boxes = gt_boxes[keep]
 
         if DEBUG:
@@ -170,6 +173,8 @@ class AnchorTargetLayer(UserFunction):
         gt_max_overlaps = overlaps[gt_argmax_overlaps,
                                    np.arange(overlaps.shape[1])]
         gt_argmax_overlaps = np.where(overlaps == gt_max_overlaps)[0]
+
+        #import pdb; pdb.set_trace()
 
         if not cfg.TRAIN.RPN_CLOBBER_POSITIVES:
             # assign bg labels first so that positive labels can clobber them
@@ -258,12 +263,6 @@ class AnchorTargetLayer(UserFunction):
         labels = labels.reshape((1, height, width, A)).transpose(0, 3, 1, 2)
         #labels = labels.reshape((1, 1, A * height, width))
         #labels = labels.reshape((1, A, height, width))
-
-        # !!! TODO: the following four have to be checked. Doing loss functions first.
-        #labels_as_int = [i.item() for i in labels.astype(int)]
-        #labels_dense = np.eye(self._num_classes, dtype=np.float32)[labels_as_int]
-        #labels_dense.shape = (1,) + labels_dense.shape # batch axis
-        #outputs[self.outputs[0]] = labels_dense
 
         # top[0].reshape(*labels.shape)
         # top[0].data[...] = labels

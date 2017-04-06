@@ -40,6 +40,8 @@ for imgIndex in range(0, imdb.num_images):
         nmsKeepIndices = applyNonMaximaSuppression(nmsThreshold, labels, scores, imdb.roidb[imgIndex]['boxes'])
         print ("Non-maxima surpression kept {:4} of {:4} rois (nmsThreshold={})".format(len(nmsKeepIndices), len(labels), nmsThreshold))
 
+    import pdb; pdb.set_trace()
+
     # visualize results
     imgDebug = visualizeResults(imgPath, labels, scores, imdb.roidb[imgIndex]['boxes'], cntk_padWidth, cntk_padHeight,
                                 classes, nmsKeepIndices, boDrawNegativeRois=True)

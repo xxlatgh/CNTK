@@ -15,9 +15,9 @@ from generate_anchors import generate_anchors
 from fast_rcnn.bbox_transform import bbox_transform_inv, clip_boxes
 from fast_rcnn.nms_wrapper import nms
 
-DEBUG = True
-debug_fwd = True
-debug_bkw = True
+DEBUG = cfg["CNTK"].DEBUG_LAYERS
+debug_fwd = cfg["CNTK"].DEBUG_FWD
+debug_bkw = cfg["CNTK"].DEBUG_BKW
 
 # rpn_rois = user_function(ProposalLayer(rpn_cls_prob, rpn_bbox_pred, im_info))
 class ProposalLayer(UserFunction):
@@ -36,7 +36,7 @@ class ProposalLayer(UserFunction):
         self._anchors = generate_anchors(scales=np.array(anchor_scales))
         self._num_anchors = self._anchors.shape[0]
         self._im_info = im_info
-        self._rois_per_image = rois_per_image
+        self._rois_per_image = cfg["CNTK"].ROIS_PER_IMAGE
 
         if DEBUG:
             print ('feat_stride: {}'.format(self._feat_stride))
@@ -49,7 +49,7 @@ class ProposalLayer(UserFunction):
         # rectangle (x1, y1, x2, y2)
         #top[0].reshape(1, 5)
         # for CNTK the proposal shape is [4 x roisPerImage], and mirrored in Python
-        proposalShape = (100, 4)
+        proposalShape = (self._rois_per_image, 4)
 
         # scores blob: holds scores for R regions of interest
         #if len(top) > 1:
@@ -81,7 +81,7 @@ class ProposalLayer(UserFunction):
 
         cfg_key = 'TRAIN' # str(self.phase) # either 'TRAIN' or 'TEST'
         pre_nms_topN  = cfg[cfg_key].RPN_PRE_NMS_TOP_N
-        post_nms_topN = 100 # is num_rois --> cfg[cfg_key].RPN_POST_NMS_TOP_N
+        post_nms_topN = cfg["CNTK"].ROIS_PER_IMAGE
         nms_thresh    = cfg[cfg_key].RPN_NMS_THRESH
         min_size      = cfg[cfg_key].RPN_MIN_SIZE
 
