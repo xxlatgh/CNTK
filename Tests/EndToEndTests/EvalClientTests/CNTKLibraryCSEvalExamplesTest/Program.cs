@@ -24,7 +24,7 @@ namespace CNTKLibraryCSEvalExamples
             {
                 var device = DeviceDescriptor.CPUDevice;
 
-                CNTKLibraryManagedExamples.EvaluationSingleImage(device);
+                // CNTKLibraryManagedExamples.EvaluationSingleImage(device);
                 // Run memory tests.
                 MemoryTests.ValidateObjectReferences(device);
                 CNTKLibraryManagedExamples.EvaluationBatchOfImages(device);
