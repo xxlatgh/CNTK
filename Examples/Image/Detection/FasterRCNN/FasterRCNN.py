@@ -5,7 +5,7 @@
 # ==============================================================================
 
 from __future__ import print_function
-#import numpy as np
+import numpy as np
 import os, sys
 from matplotlib.pyplot import imshow, imsave
 from PIL import ImageFont
@@ -24,10 +24,7 @@ sys.path.append(os.path.join(abs_path, "lib", "rpn"))
 sys.path.append(os.path.join(abs_path, "lib", "nms"))
 sys.path.append(os.path.join(abs_path, "lib", "nms", "gpu"))
 
-from cntk import *
-#from cntk import Trainer, UnitType, load_model, user_function, Axis, input, parameter, times, combine, relu, softmax, roipooling, reduce_sum, slice, splice, reshape, plus, CloneMethod
-#from cntk.ops import parameter, times, combine, relu, softmax, roipooling, reduce_sum, slice, splice, reshape, plus
-#from cntk.ops.functions import CloneMethod
+from cntk import Trainer, UnitType, load_model, user_function, Axis, input, parameter, times, combine, relu, softmax, roipooling, reduce_sum, slice, splice, reshape, plus, CloneMethod
 from cntk.io import MinibatchSource, ImageDeserializer, CTFDeserializer, StreamDefs, StreamDef, TraceLevel
 from cntk.io.transforms import scale
 from cntk.initializer import glorot_uniform
@@ -359,8 +356,6 @@ def eval_faster_rcnn(model, debug_output=False):
 
     # evaluate test images and write netwrok output to file
     print("Evaluating Faster R-CNN model for %s images." % num_test_images)
-    #results_file_path = base_path + "test.z"
-    #with open(results_file_path, 'wb') as results_file:
     for i in range(0, num_test_images):
         data = test_minibatch_source.next_minibatch(1, input_map=input_map)
         output = frcn_eval.eval(data)
@@ -370,11 +365,11 @@ def eval_faster_rcnn(model, debug_output=False):
         out_rpn_rois = output[out_dict['rpn_rois']][0]
         out_bbox_regr = output[out_dict['bbox_regr']][0]
 
+        # TODO: apply regression to bbox coordinates
+
         imgPath = img_file_names[i]
         labels = out_cls_pred.argmax(axis=1)
         scores = out_cls_pred.max(axis=1).tolist()
-
-        #import pdb; pdb.set_trace()
 
         # visualize results
         imgDebug = visualizeResultsFaster(imgPath, labels, scores, out_rpn_rois, 1000, 1000,

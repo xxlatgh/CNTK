@@ -6,8 +6,8 @@ from fastRCNN.pascal_voc import pascal_voc # as nmsPython
 print (datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S'))
 
 # dataset name
-# datasetName = "Grocery"
-datasetName = "pascalVoc"
+datasetName = "Grocery"
+# datasetName = "pascalVoc"
 # datasetName = "pascalVoc_aeroplanesOnly"
 
 
