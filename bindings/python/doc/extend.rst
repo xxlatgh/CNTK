@@ -221,5 +221,5 @@ computation can be moved to the constructor::
 With this implementation, we keep the costly NumPy conversion to a bare
 minimum, while speeding up the update process considerably.
 
-Before starting a new learner, though, please check out :mod:`cntk.learner`
+Before starting a new learner, though, please check out :mod:`cntk.learners`
 whether your learner is already available.
