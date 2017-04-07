@@ -34,9 +34,9 @@ from cntk.logging import log_number_of_parameters, ProgressPrinter
 from cntk.logging.graph import find_by_name, plot, get_node_outputs
 from cntk.losses import cross_entropy_with_softmax
 from cntk.metrics import classification_error
-from lib.rpn.cntk_anchor_target_layer import AnchorTargetLayer
-from lib.rpn.cntk_proposal_layer import ProposalLayer
-from lib.rpn.cntk_proposal_target_layer import ProposalTargetLayer
+from lib.rpn.anchor_target_layer import AnchorTargetLayer
+from lib.rpn.proposal_layer import ProposalLayer
+from lib.rpn.proposal_target_layer import ProposalTargetLayer
 from lib.rpn.cntk_smoothL1_loss import SmoothL1Loss
 from lib.rpn.cntk_ignore_label import IgnoreLabel
 from cntk_helpers import visualizeResultsFaster
