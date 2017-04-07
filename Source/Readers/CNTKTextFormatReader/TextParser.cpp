@@ -177,7 +177,8 @@ void TextParser<ElemType>::Initialize()
     int64_t position = _ftelli64(m_file);
     if (position < 0)
     {
-        RuntimeError("Error retrieving current position in the input file (%ls).", m_filename.c_str());
+        int errsv = errno;
+        RuntimeError("Error retrieving current position in the input file (%ls). Errorno %d", m_filename.c_str(), errsv);
     }
 
     m_fileOffsetEnd = m_fileOffsetStart = static_cast<size_t>(position);
