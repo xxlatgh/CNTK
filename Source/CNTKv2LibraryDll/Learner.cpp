@@ -139,14 +139,20 @@ namespace CNTK
     {
         const auto& gradientMatrix = gradientValue->GetWritableMatrix<ElementType>();
 
+        // get average gradient if needed
+        if (m_additionalOptions.useAveragedGradient)
+        {
+            Matrix<ElementType>::Scale((ElementType)1.0 / actualMBSize, *gradientMatrix);
+        }
+
         // clipping gradients to prevent outliers
-        ClipGradient<ElementType>(*gradientMatrix, actualMBSize);
+        ClipGradient<ElementType>(*gradientMatrix, (m_additionalOptions.useAveragedGradient ? 1 : actualMBSize));
 
         // L2 regularizer
         if (m_additionalOptions.l2RegularizationWeight > 0)
         {
             // multiply by actualMBSize so that it's invariant to minibatch size since learning rate is per sample
-            const auto weight = m_additionalOptions.l2RegularizationWeight * actualMBSize;
+            const auto weight = m_additionalOptions.l2RegularizationWeight * (m_additionalOptions.useAveragedGradient ? 1 : actualMBSize);
             const auto& parameterMatrix = parameterValue->GetWritableMatrix<ElementType>();
             Matrix<ElementType>::ScaleAndAdd(ElementType(weight), *parameterMatrix, *gradientMatrix);
         }
@@ -182,7 +188,8 @@ namespace CNTK
         {
             const auto learningRate = LearningRate(actualMBSize);
             // multiply by actualMBSize so that it's invariant to minibatch size since learning rate is per sample
-            const auto weight = learningRate * m_additionalOptions.l1RegularizationWeight * actualMBSize;
+            // don't need to scale to actualMBSize if we are already taking mean gradient
+            const auto weight = learningRate * m_additionalOptions.l1RegularizationWeight * (m_additionalOptions.useAveragedGradient ? 1 : actualMBSize);
             parameterValue->GetWritableMatrix<ElementType>()->InplaceSoftThreshold(ElementType(weight));
         }
     }
