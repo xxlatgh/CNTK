@@ -53,7 +53,7 @@ def pred_cnn_model(model_path, output):
     mb = test_data.next_minibatch(mbs, bind)
     pred = predict_func.eval(mb)
     ans = np.nonzero(pred)
-    with open(output, mode='a') as outf:
+    with open(output, mode='a', encoding='utf-8') as outf:
       for id in ans[1]:
         outf.write("{0}\t{1}\n".format(instance_id, entity_table.lookup_by_id(id)))
         instance_id += 1
@@ -62,8 +62,6 @@ def pred_cnn_model(model_path, output):
     samples_sum += samples
     sys.stdout.write('.')
     sys.stdout.flush()
-    #print("")
-    #print("{}:{}: acc: {}, avg: {}".format(m,samples_sum, acc/samples, acc_sum/samples_sum))
   end = os.times()
   total = end.elapsed - start.elapsed
   print("")
