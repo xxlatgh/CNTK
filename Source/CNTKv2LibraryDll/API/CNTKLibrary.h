@@ -4137,9 +4137,9 @@ namespace CNTK
         double gradientClippingThresholdPerSample = std::numeric_limits<double>::infinity();
         bool gradientClippingWithTruncation = true;
 
-        // this is for learners that expects average gradient instead of accumulated,
-        // accumulated gradients would be divided by batch size before feeding into learner
-        bool useAveragedGradient = false;
+        // This option results in the mean value of the gradients across the samples in the minibatch to be used by the learner.
+        // The mean gradient is computed by dividing the gradient values accumulated across all samples by the actual number of samples (labels) in the minibatch.
+        bool useMeanGradient = false;
     };
 
     ///  
@@ -4155,12 +4155,12 @@ namespace CNTK
     ///  
     /// Returns true if by default input gradient to learner is averaged.
     ///
-    CNTK_API bool DefaultUseAveragedGradientValue();
+    CNTK_API bool DefaultUseMeanGradientValue();
 
     ///  
-    /// Sets globally default useAveragedGradient value.
+    /// Sets globally default useMeanGradient value.
     ///
-    CNTK_API void SetDefaultUseAveragedGradientValue(bool value);
+    CNTK_API void SetDefaultUseMeanGradientValue(bool value);
 
     ///
     /// Abstraction for learning a subset of parameters of a learnable Function using first order gradient values.

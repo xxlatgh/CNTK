@@ -760,16 +760,16 @@ namespace CNTK
         s_defaultUnitGainValue.store(value);
     }
 
-    static std::atomic<bool> s_defaultUseAveragedGradient(false);
+    static std::atomic<bool> s_defaultUseMeanGradient(false);
 
-    bool DefaultUseAveragedGradientValue()
+    bool DefaultUseMeanGradientValue()
     {
-        return s_defaultUseAveragedGradient;
+        return s_defaultUseMeanGradient;
     }
 
-    void SetDefaultUseAveragedGradientValue(bool value)
+    void SetDefaultUseMeanGradientValue(bool value)
     {
-        s_defaultUseAveragedGradient.store(value);
+        s_defaultUseMeanGradient.store(value);
     }
 
     template <class E>
