@@ -239,7 +239,7 @@ namespace CNTK
 
         CNTK_API size_t NewUniqueId();
 
-        CNTK_API size_t GenerateRandomSeed();
+        CNTK_API size_t GenerateRandomSeed(bool perWorkerLocalValue = false);
 
         // Internal hooks for testing and higher-level bindings
         // These should not be directly called by C++ API users

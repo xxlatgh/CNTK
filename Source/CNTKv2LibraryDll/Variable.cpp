@@ -258,17 +258,6 @@ namespace CNTK
         m_valueInitializationDevice.reset(new DeviceDescriptor(device));
     }
 
-    namespace Internal
-    {
-        static std::atomic<unsigned long> s_fixedRandomSeed(0);
-        void SetFixedRandomSeed(unsigned long fixedRandomSeed)
-        {
-            s_fixedRandomSeed.store(fixedRandomSeed);
-        }
-    }
-
-    static std::atomic<unsigned long> s_currentRandomSeed(1);
-
     static ParameterInitializer CreateInitializer(const std::wstring& initializerTypeName, double scale, int outputRank, int filterRank, unsigned long seed)
     {
         Dictionary initConfig;
@@ -276,11 +265,6 @@ namespace CNTK
         initConfig[OutputRankAttributeName] = outputRank;
         initConfig[FilterRankAttributeName] = filterRank;
         initConfig[ScaleAttributeName] = scale;
-
-        auto currentFixedRandomSeed = Internal::s_fixedRandomSeed.load();
-        if (currentFixedRandomSeed != 0)
-            seed = currentFixedRandomSeed;
-
         initConfig[RandomSeedAttributeName] = (size_t)seed;
 
         return initConfig;
@@ -398,7 +382,7 @@ namespace CNTK
         {
             auto randomSeed = (unsigned long)initConfig[RandomSeedAttributeName].Value<size_t>();
             if (randomSeed == SentinelValueForAutoSelectRandomSeed)
-                randomSeed = s_currentRandomSeed++;
+                randomSeed = Internal::GenerateRandomSeed();
 
             auto scale = initConfig[ScaleAttributeName].Value<double>();
             int outputRank = DefaultParamInitOutputRank, filterRank = DefaultParamInitFilterRank;
