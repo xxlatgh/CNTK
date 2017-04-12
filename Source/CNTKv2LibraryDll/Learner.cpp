@@ -188,7 +188,7 @@ namespace CNTK
         {
             const auto learningRate = LearningRate(actualMBSize);
             // multiply by actualMBSize so that it's invariant to minibatch size since learning rate is per sample
-            // don't need to scale to actualMBSize if we are already taking mean gradient
+            // don't need to scale to actualMBSize if we are already taking averaged gradient
             const auto weight = learningRate * m_additionalOptions.l1RegularizationWeight * (m_additionalOptions.useAveragedGradient ? 1 : actualMBSize);
             parameterValue->GetWritableMatrix<ElementType>()->InplaceSoftThreshold(ElementType(weight));
         }
@@ -219,6 +219,11 @@ namespace CNTK
                 NDArrayViewPtr view = AllocateNDArrayView(parameter, parameter.Shape());
                 m_smoothedGradientValues.emplace(parameter, view);
             }
+        }
+
+        if (m_additionalOptions.useAveragedGradient && learningRateSchedule.Unit() == LearningRateSchedule::UnitType::Minibatch)
+        {
+            LogicError("useAveragedGradient should not be used with Per-minibatch scheduler");
         }
     }
 
